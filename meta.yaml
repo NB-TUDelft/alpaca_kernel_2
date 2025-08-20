@@ -1,20 +1,23 @@
+{% set data = load_setup_py_data() %}
+
 package:
   name: "alpaca_kernel_2"
-  version: "0.0.1"
+  version: {{ data.get('version') }}
 
 source:
-  git_rev: 0.0.1
-  git_url: https://github.com/twhoekstra/alpaca_kernel_2
+  path: .
 
 requirements:
-  build:
+  host:
     - python
-    - numpy x.x # [not win]
+    - pip
+    - setuptools
+    - wheel
 
   run:
     - python
-    - numpy x.x # [not win]
-    - matplotlib # [not win]
+    - numpy
+    - matplotlib
     - pyserial
     - ipython
     - comm
@@ -22,13 +25,13 @@ requirements:
     - jupyter_client
     - jupyter_core
     - tornado
-    - appnope
+    - appnope  # [osx]
     - pyzmq
     - psutil
     - packaging
     
 about:
-  home: https://github.com/twhoekstra/alpaca_kernel_2
+  home: https://github.com/NB-TUDelft/alpaca_kernel_2
   license: MIT
   license_family: MIT
   summary: jupyter_micropython_kernel and IPyKernel
