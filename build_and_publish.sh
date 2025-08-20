@@ -151,16 +151,20 @@ build_packages() {
     
     log_info "Building conda packages..."
     
-    # Clean previous builds
+    # Clean previous builds in project directory
+    execute_or_show "rm -rf '${BUILD_DIR}'"
+    execute_or_show "mkdir -p '${BUILD_DIR}'"
+    
+    # Clean conda build cache
     execute_or_show "conda build purge || true"
     
-    # Build .tar.bz2 format (required for conversion)
+    # Build .tar.bz2 format (required for conversion) in project directory
     log_info "Building .tar.bz2 package..."
-    execute_or_show "conda build . --python=${PYTHON_VERSION} --no-anaconda-upload --no-include-recipe --package-format tar.bz2"
+    execute_or_show "conda build . --python=${PYTHON_VERSION} --no-anaconda-upload --no-include-recipe --package-format tar.bz2 --output-folder '${BUILD_DIR}'"
     
-    # Build .conda format (modern format)
+    # Build .conda format (modern format) in project directory
     log_info "Building .conda package..."
-    execute_or_show "conda build . --python=${PYTHON_VERSION} --no-anaconda-upload --no-include-recipe --package-format conda"
+    execute_or_show "conda build . --python=${PYTHON_VERSION} --no-anaconda-upload --no-include-recipe --package-format conda --output-folder '${BUILD_DIR}'"
     
     log_success "Package builds completed"
 }
@@ -174,14 +178,16 @@ convert_packages() {
     
     log_info "Converting packages for all platforms..."
     
-    # Find the built tar.bz2 package
+    # Find the built tar.bz2 package in project build directory
     local package_pattern
-    package_pattern="$(conda info --base)/conda-bld/linux-64/alpaca_kernel_2-*-py${PYTHON_VERSION//.}_0.tar.bz2"
+    package_pattern="${BUILD_DIR}/linux-64/alpaca_kernel_2-*-py${PYTHON_VERSION//.}_0.tar.bz2"
     local tar_package
     tar_package=$(ls $package_pattern 2>/dev/null | head -1)
     
     if [[ -z "$tar_package" || ! -f "$tar_package" ]]; then
         log_error "Built tar.bz2 package not found at: $package_pattern"
+        log_info "Available packages in build directory:"
+        find "${BUILD_DIR}" -name "*.tar.bz2" -o -name "*.conda" 2>/dev/null || echo "No packages found"
         exit 1
     fi
     
@@ -206,14 +212,10 @@ upload_packages() {
     
     log_info "Uploading packages to ${ORGANIZATION}..."
     
-    # Find all packages to upload
-    local conda_base
-    conda_base="$(conda info --base)"
-    
-    # Upload original builds
+    # Upload original builds from project directory
     local tar_package conda_package
-    tar_package=$(ls "${conda_base}/conda-bld/linux-64/alpaca_kernel_2-"*"-py${PYTHON_VERSION//.}_0.tar.bz2" 2>/dev/null | head -1)
-    conda_package=$(ls "${conda_base}/conda-bld/linux-64/alpaca_kernel_2-"*"-py${PYTHON_VERSION//.}_0.conda" 2>/dev/null | head -1)
+    tar_package=$(ls "${BUILD_DIR}/linux-64/alpaca_kernel_2-"*"-py${PYTHON_VERSION//.}_0.tar.bz2" 2>/dev/null | head -1)
+    conda_package=$(ls "${BUILD_DIR}/linux-64/alpaca_kernel_2-"*"-py${PYTHON_VERSION//.}_0.conda" 2>/dev/null | head -1)
     
     if [[ -n "$tar_package" && -f "$tar_package" ]]; then
         log_info "Uploading original tar.bz2 package..."
@@ -270,10 +272,14 @@ verify_uploads() {
 cleanup() {
     log_info "Cleaning up..."
     
-    # Optionally clean conda build cache
+    # Optionally clean conda build cache (but keep project builds for debugging)
     # execute_or_show "conda build purge"
     
-    log_info "Cleanup completed"
+    # Optionally clean project build artifacts
+    # execute_or_show "rm -rf '${BUILD_DIR}'"
+    # execute_or_show "rm -rf '${CONVERT_DIR}'"
+    
+    log_info "Cleanup completed (build artifacts kept for inspection)"
 }
 
 # Main execution

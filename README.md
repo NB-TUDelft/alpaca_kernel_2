@@ -5,7 +5,7 @@ This package provides the ALPACA kernel for Jupyter.
 ## Installation via conda
 
 
-1. `conda install -c twh alpaca_kernel_2`'
+1. `conda install nb_tudelft::alpaca_kernel_2`
 2. `conda install ipykernel # Nice to have`
 3. `python -m alpaca_kernel install`
 4. `python -m ipykernel install`
